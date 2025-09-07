@@ -1,0 +1,87 @@
+GOVERNMENT OF INDIA
+MINISTRY OF DEFENCE
+DEPARTMENT OF DEFENCE PRODUCTION
+
+TENDER NOTICE
+
+Tender No: MOD/DP/2024/IT-001
+Date of Issue: 15/01/2024
+Last Date of Submission: 28/02/2024 at 15:00 HRS
+Date of Opening: 01/03/2024 at 16:00 HRS
+
+PROCUREMENT OF COMPUTER HARDWARE AND SOFTWARE
+
+1. BRIEF DESCRIPTION OF WORK:
+   Supply, installation, and commissioning of computer hardware and software
+   for the modernization of office infrastructure at various locations.
+
+2. ESTIMATED VALUE:
+   ₹75,00,000 (Seventy Five Lakh Rupees Only)
+   Including all taxes and duties
+
+3. ELIGIBILITY CRITERIA:
+   a) The bidder must be a registered company in India
+   b) Minimum 5 years experience in IT equipment supply
+   c) Annual turnover of at least ₹2 crores in the last 3 years
+   d) Valid GST registration certificate
+   e) ISO 9001:2015 certification
+   f) No blacklisting by any government department
+
+4. REQUIRED DOCUMENTS:
+   a) Company registration certificate
+   b) GST registration certificate
+   c) Income tax returns for last 3 years
+   d) Bank solvency certificate
+   e) Technical specifications and compliance
+   f) Price schedule as per format
+   g) Earnest Money Deposit (EMD) of ₹1,50,000
+
+5. TECHNICAL SPECIFICATIONS:
+   - Desktop Computers: 50 units (Intel i7, 16GB RAM, 512GB SSD)
+   - Laptops: 25 units (Intel i5, 8GB RAM, 256GB SSD)
+   - Printers: 10 units (Multifunction laser printers)
+   - Software licenses: Windows 11 Pro, MS Office 2021
+   - Network equipment: Switches, routers, cables
+
+6. DELIVERY SCHEDULE:
+   - Supply: Within 30 days of work order
+   - Installation: Within 15 days of supply
+   - Commissioning: Within 7 days of installation
+   - Warranty: 3 years comprehensive warranty
+
+7. PENALTIES:
+   - Late delivery: ₹5,000 per day
+   - Non-compliance with specifications: 10% of contract value
+   - Poor quality: 15% of contract value
+   - Delay in installation: ₹2,000 per day
+
+8. PAYMENT TERMS:
+   - 20% advance payment on work order
+   - 60% on delivery and inspection
+   - 20% after successful commissioning and acceptance
+
+9. CONTACT DETAILS:
+   Procurement Officer: Shri Rajesh Kumar
+   Email: procurement.dp@mod.gov.in
+   Phone: +91-11-23011234
+   Address: Room 205, Sena Bhavan, New Delhi - 110011
+
+10. SPECIAL CONDITIONS:
+    - Bidders must visit the site before submission
+    - All equipment must be new and unused
+    - Compliance with Make in India policy preferred
+    - Local area preference for MSME units
+
+11. SUBMISSION DETAILS:
+    - Tender documents available from: 16/01/2024
+    - Last date for queries: 20/02/2024
+    - Pre-bid meeting: 25/02/2024 at 11:00 HRS
+    - Submission address: Procurement Cell, Sena Bhavan
+
+This tender is subject to the General Financial Rules (GFR) 2017 and
+Defence Procurement Manual 2016.
+
+For any clarifications, contact the procurement officer at least 7 days
+before the submission deadline.
+
+Note: Late submissions will not be accepted under any circumstances.

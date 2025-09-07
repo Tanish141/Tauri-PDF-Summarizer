@@ -1,0 +1,26 @@
+[package]
+name = "pdf-summarizer"
+version = "0.1.0"
+description = "Tauri PDF Summarizer for Government Officials"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.5.0", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.5.0", features = [ "fs-read-file", "shell-open", "fs-remove-dir", "fs-copy-file", "fs-write-file", "fs-rename-file", "fs-exists", "fs-remove-file", "fs-create-dir", "dialog-open", "fs-read-dir"] }
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+regex = "1.0"
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

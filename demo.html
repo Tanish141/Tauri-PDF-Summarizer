@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Summarizer Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .file-input:hover {
+            border-color: #007bff;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .summary-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-section {
+            margin-bottom: 15px;
+        }
+
+        .summary-section h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .summary-section ul {
+            margin-left: 20px;
+        }
+
+        .confidence {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence.high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .raw-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .note {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>📄 PDF Summarizer Demo</h1>
+            <p>Government Tender Document Analysis Tool</p>
+        </div>
+
+        <div class="note">
+            <strong>Demo Note:</strong> This is a simplified web version for demonstration. The full Tauri application provides better file handling and API integration. 
+            <br><br>
+            <strong>Instructions:</strong> 
+            1. Copy the sample tender text below into a text file and save as .txt
+            2. Use the "Choose File" button to select it
+            3. Click "Summarize" to see the mock analysis
+        </div>
+
+        <div class="demo-grid">
+            <div class="panel">
+                <div class="panel-header">📁 File Selection</div>
+                <div class="panel-content">
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt">
+                    <div id="fileInfo"></div>
+                    <button class="btn" onclick="summarizeDocument()" id="summarizeBtn" disabled>Summarize Document</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">📊 Summary Results</div>
+                <div class="panel-content">
+                    <div id="summaryResults">
+                        <p>Select a file and click "Summarize" to see results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">📝 Raw Text</div>
+            <div class="panel-content">
+                <div id="rawText" class="raw-text">No text loaded yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let extractedText = '';
+
+        // Sample tender text for demonstration
+        const sampleTenderText = `GOVERNMENT OF INDIA
+MINISTRY OF DEFENCE
+DEPARTMENT OF DEFENCE PRODUCTION
+
+TENDER NOTICE
+
+Tender No: MOD/DP/2024/IT-001
+Date of Issue: 15/01/2024
+Last Date of Submission: 28/02/2024 at 15:00 HRS
+Date of Opening: 01/03/2024 at 16:00 HRS
+
+PROCUREMENT OF COMPUTER HARDWARE AND SOFTWARE
+
+1. BRIEF DESCRIPTION OF WORK:
+   Supply, installation, and commissioning of computer hardware and software
+   for the modernization of office infrastructure at various locations.
+
+2. ESTIMATED VALUE:
+   ₹75,00,000 (Seventy Five Lakh Rupees Only)
+   Including all taxes and duties
+
+3. ELIGIBILITY CRITERIA:
+   a) The bidder must be a registered company in India
+   b) Minimum 5 years experience in IT equipment supply
+   c) Annual turnover of at least ₹2 crores in the last 3 years
+   d) Valid GST registration certificate
+   e) ISO 9001:2015 certification
+   f) No blacklisting by any government department
+
+4. REQUIRED DOCUMENTS:
+   a) Company registration certificate
+   b) GST registration certificate
+   c) Income tax returns for last 3 years
+   d) Bank solvency certificate
+   e) Technical specifications and compliance
+   f) Price schedule as per format
+   g) Earnest Money Deposit (EMD) of ₹1,50,000
+
+5. TECHNICAL SPECIFICATIONS:
+   - Desktop Computers: 50 units (Intel i7, 16GB RAM, 512GB SSD)
+   - Laptops: 25 units (Intel i5, 8GB RAM, 256GB SSD)
+   - Printers: 10 units (Multifunction laser printers)
+   - Software licenses: Windows 11 Pro, MS Office 2021
+   - Network equipment: Switches, routers, cables
+
+6. DELIVERY SCHEDULE:
+   - Supply: Within 30 days of work order
+   - Installation: Within 15 days of supply
+   - Commissioning: Within 7 days of installation
+   - Warranty: 3 years comprehensive warranty
+
+7. PENALTIES:
+   - Late delivery: ₹5,000 per day
+   - Non-compliance with specifications: 10% of contract value
+   - Poor quality: 15% of contract value
+   - Delay in installation: ₹2,000 per day
+
+8. PAYMENT TERMS:
+   - 20% advance payment on work order
+   - 60% on delivery and inspection
+   - 20% after successful commissioning and acceptance
+
+9. CONTACT DETAILS:
+   Procurement Officer: Shri Rajesh Kumar
+   Email: procurement.dp@mod.gov.in
+   Phone: +91-11-23011234
+   Address: Room 205, Sena Bhavan, New Delhi - 110011
+
+10. SPECIAL CONDITIONS:
+    - Bidders must visit the site before submission
+    - All equipment must be new and unused
+    - Compliance with Make in India policy preferred
+    - Local area preference for MSME units
+
+11. SUBMISSION DETAILS:
+    - Tender documents available from: 16/01/2024
+    - Last date for queries: 20/02/2024
+    - Pre-bid meeting: 25/02/2024 at 11:00 HRS
+    - Submission address: Procurement Cell, Sena Bhavan
+
+This tender is subject to the General Financial Rules (GFR) 2017 and
+Defence Procurement Manual 2016.
+
+For any clarifications, contact the procurement officer at least 7 days
+before the submission deadline.
+
+Note: Late submissions will not be accepted under any circumstances.`;
+
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileInfo').innerHTML = `
+                <strong>Selected:</strong> ${file.name}<br>
+                <strong>Type:</strong> ${file.type}<br>
+                <strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB
+            `;
+
+            if (file.type === 'application/pdf') {
+                extractTextFromPDF(file);
+            } else if (file.type === 'text/plain') {
+                extractTextFromTXT(file);
+            } else {
+                alert('Please select a PDF or text file.');
+            }
+        }
+
+        async function extractTextFromPDF(file) {
+            try {
+                document.getElementById('summaryResults').innerHTML = '<div class="loading">Extracting text from PDF...</div>';
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = '';
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
+                }
+
+                extractedText = fullText;
+                document.getElementById('rawText').textContent = extractedText;
+                document.getElementById('summarizeBtn').disabled = false;
+                document.getElementById('summaryResults').innerHTML = '<p>Text extracted successfully. Click "Summarize" to analyze.</p>';
+            } catch (error) {
+                document.getElementById('summaryResults').innerHTML = `<div class="error">Error extracting text: ${error.message}</div>`;
+            }
+        }
+
+        function extractTextFromTXT(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                extractedText = e.target.result;
+                document.getElementById('rawText').textContent = extractedText;
+                document.getElementById('summarizeBtn').disabled = false;
+                document.getElementById('summaryResults').innerHTML = '<p>Text loaded successfully. Click "Summarize" to analyze.</p>';
+            };
+            reader.readAsText(file);
+        }
+
+        function mockSummarize(text) {
+            const relevancePoints = [];
+            const actionItems = [];
+            
+            // Extract dates (deadlines)
+            const datePattern = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi;
+            const dates = text.match(datePattern) || [];
+            if (dates.length > 0) {
+                relevancePoints.push(`Deadlines found: ${dates.slice(0, 5).join(', ')}`);
+                actionItems.push('Review submission deadlines and plan accordingly');
+            }
+            
+            // Extract money amounts
+            const moneyPattern = /₹\s*[\d,]+(?:\.\d{2})?|\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:lakh|crore|thousand|million|billion)\b/gi;
+            const amounts = text.match(moneyPattern) || [];
+            if (amounts.length > 0) {
+                relevancePoints.push(`Financial values: ${amounts.slice(0, 5).join(', ')}`);
+                actionItems.push('Verify budget allocation and financial requirements');
+            }
+            
+            // Extract eligibility criteria
+            const eligibilityKeywords = ['eligibility', 'qualification', 'criteria', 'requirement', 'minimum'];
+            const hasEligibility = eligibilityKeywords.some(keyword => 
+                text.toLowerCase().includes(keyword)
+            );
+            if (hasEligibility) {
+                relevancePoints.push('Eligibility criteria mentioned in document');
+                actionItems.push('Review eligibility requirements and ensure compliance');
+            }
+            
+            // Extract contact information
+            const contactPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|\b(?:\+91|0)?[6-9]\d{9}\b/g;
+            const contacts = text.match(contactPattern) || [];
+            if (contacts.length > 0) {
+                relevancePoints.push(`Contact information: ${contacts.slice(0, 3).join(', ')}`);
+                actionItems.push('Save contact details for inquiries');
+            }
+            
+            // Extract tender/procurement keywords
+            const procurementKeywords = ['tender', 'procurement', 'bid', 'quotation', 'rfp', 'rfq'];
+            const hasProcurement = procurementKeywords.some(keyword => 
+                text.toLowerCase().includes(keyword)
+            );
+            if (hasProcurement) {
+                relevancePoints.push('Procurement/tender document identified');
+                actionItems.push('Review procurement process and requirements');
+            }
+            
+            // Generate short summary from first few sentences
+            const sentences = text.split('.').slice(0, 3);
+            const shortSummary = sentences.join('. ').trim() || 'Document processed successfully';
+            
+            // Determine confidence based on extracted information
+            let confidence = 'low';
+            if (relevancePoints.length >= 3) {
+                confidence = 'high';
+            } else if (relevancePoints.length >= 1) {
+                confidence = 'medium';
+            }
+            
+            return {
+                short_summary: shortSummary,
+                relevance_to_officials: relevancePoints,
+                action_items: actionItems,
+                confidence_estimate: confidence
+            };
+        }
+
+        function summarizeDocument() {
+            if (!extractedText.trim()) {
+                alert('Please select a file first.');
+                return;
+            }
+
+            document.getElementById('summaryResults').innerHTML = '<div class="loading">Analyzing document...</div>';
+
+            // Simulate processing delay
+            setTimeout(() => {
+                const result = mockSummarize(extractedText);
+                displaySummary(result);
+            }, 1000);
+        }
+
+        function displaySummary(result) {
+            const html = `
+                <div class="summary-result">
+                    <div class="summary-section">
+                        <h4>📋 Summary</h4>
+                        <p>${result.short_summary}</p>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4>🎯 Relevance to Officials</h4>
+                        <ul>
+                            ${result.relevance_to_officials.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4>✅ Action Items</h4>
+                        <ul>
+                            ${result.action_items.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4>📊 Confidence</h4>
+                        <span class="confidence ${result.confidence_estimate}">
+                            ${result.confidence_estimate}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('summaryResults').innerHTML = html;
+        }
+
+        // Load sample text on page load
+        window.onload = function() {
+            extractedText = sampleTenderText;
+            document.getElementById('rawText').textContent = extractedText;
+            document.getElementById('summarizeBtn').disabled = false;
+            document.getElementById('summaryResults').innerHTML = '<p>Sample tender text loaded. Click "Summarize" to see the analysis.</p>';
+        };
+    </script>
+</body>
+</html>

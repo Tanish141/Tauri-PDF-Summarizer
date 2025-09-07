@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Summarizer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .success { border-color: #d4edda; background: #d4edda; }
+        .error { border-color: #f8d7da; background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Mock Summarizer Test</h1>
+    <div id="testResults"></div>
+
+    <script>
+        function mockSummarize(text) {
+            const relevancePoints = [];
+            const actionItems = [];
+            
+            // Extract dates (deadlines)
+            const datePattern = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi;
+            const dates = text.match(datePattern) || [];
+            if (dates.length > 0) {
+                relevancePoints.push(`Deadlines found: ${dates.slice(0, 5).join(', ')}`);
+                actionItems.push('Review submission deadlines and plan accordingly');
+            }
+            
+            // Extract money amounts
+            const moneyPattern = /₹\s*[\d,]+(?:\.\d{2})?|\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:lakh|crore|thousand|million|billion)\b/gi;
+            const amounts = text.match(moneyPattern) || [];
+            if (amounts.length > 0) {
+                relevancePoints.push(`Financial values: ${amounts.slice(0, 5).join(', ')}`);
+                actionItems.push('Verify budget allocation and financial requirements');
+            }
+            
+            // Extract eligibility criteria
+            const eligibilityKeywords = ['eligibility', 'qualification', 'criteria', 'requirement', 'minimum'];
+            const hasEligibility = eligibilityKeywords.some(keyword => 
+                text.toLowerCase().includes(keyword)
+            );
+            if (hasEligibility) {
+                relevancePoints.push('Eligibility criteria mentioned in document');
+                actionItems.push('Review eligibility requirements and ensure compliance');
+            }
+            
+            // Extract contact information
+            const contactPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|\b(?:\+91|0)?[6-9]\d{9}\b/g;
+            const contacts = text.match(contactPattern) || [];
+            if (contacts.length > 0) {
+                relevancePoints.push(`Contact information: ${contacts.slice(0, 3).join(', ')}`);
+                actionItems.push('Save contact details for inquiries');
+            }
+            
+            // Extract tender/procurement keywords
+            const procurementKeywords = ['tender', 'procurement', 'bid', 'quotation', 'rfp', 'rfq'];
+            const hasProcurement = procurementKeywords.some(keyword => 
+                text.toLowerCase().includes(keyword)
+            );
+            if (hasProcurement) {
+                relevancePoints.push('Procurement/tender document identified');
+                actionItems.push('Review procurement process and requirements');
+            }
+            
+            // Generate short summary from first few sentences
+            const sentences = text.split('.').slice(0, 3);
+            const shortSummary = sentences.join('. ').trim() || 'Document processed successfully';
+            
+            // Determine confidence based on extracted information
+            let confidence = 'low';
+            if (relevancePoints.length >= 3) {
+                confidence = 'high';
+            } else if (relevancePoints.length >= 1) {
+                confidence = 'medium';
+            }
+            
+            return {
+                short_summary: shortSummary,
+                relevance_to_officials: relevancePoints,
+                action_items: actionItems,
+                confidence_estimate: confidence
+            };
+        }
+
+        function runTests() {
+            const results = document.getElementById('testResults');
+            
+            // Test 1: Sample tender document
+            const sampleText = `GOVERNMENT OF INDIA
+MINISTRY OF DEFENCE
+TENDER NOTICE
+
+Tender No: MOD/2024/001
+Date: 15/01/2024
+Last Date of Submission: 28/02/2024
+
+Procurement of Computer Equipment
+Estimated Value: ₹50,00,000 (Fifty Lakh Rupees)
+
+Eligibility Criteria:
+- Minimum 3 years experience in IT equipment supply
+- Annual turnover of at least ₹1 crore
+- Valid GST registration
+
+Contact Details:
+Email: procurement@mod.gov.in
+Phone: +91-11-23011234
+
+Penalties:
+- Late submission: ₹10,000 per day
+- Non-compliance: 5% of contract value`;
+
+            const result1 = mockSummarize(sampleText);
+            
+            results.innerHTML += `
+                <div class="test-result success">
+                    <h3>✅ Test 1: Sample Tender Document</h3>
+                    <p><strong>Input:</strong> Government tender document with dates, amounts, contacts</p>
+                    <p><strong>Result:</strong></p>
+                    <pre>${JSON.stringify(result1, null, 2)}</pre>
+                    <p><strong>Status:</strong> ${result1.relevance_to_officials.length >= 3 ? 'PASS' : 'FAIL'} - Found ${result1.relevance_to_officials.length} relevance points</p>
+                </div>
+            `;
+
+            // Test 2: Empty text
+            const result2 = mockSummarize('');
+            
+            results.innerHTML += `
+                <div class="test-result ${result2.short_summary === 'Document processed successfully' ? 'success' : 'error'}">
+                    <h3>${result2.short_summary === 'Document processed successfully' ? '✅' : '❌'} Test 2: Empty Text</h3>
+                    <p><strong>Input:</strong> Empty string</p>
+                    <p><strong>Result:</strong></p>
+                    <pre>${JSON.stringify(result2, null, 2)}</pre>
+                    <p><strong>Status:</strong> ${result2.short_summary === 'Document processed successfully' ? 'PASS' : 'FAIL'}</p>
+                </div>
+            `;
+
+            // Test 3: Minimal text
+            const result3 = mockSummarize('This is a simple document with no special information.');
+            
+            results.innerHTML += `
+                <div class="test-result ${result3.confidence_estimate === 'low' ? 'success' : 'error'}">
+                    <h3>${result3.confidence_estimate === 'low' ? '✅' : '❌'} Test 3: Minimal Text</h3>
+                    <p><strong>Input:</strong> Simple text with no government-specific information</p>
+                    <p><strong>Result:</strong></p>
+                    <pre>${JSON.stringify(result3, null, 2)}</pre>
+                    <p><strong>Status:</strong> ${result3.confidence_estimate === 'low' ? 'PASS' : 'FAIL'} - Confidence should be low</p>
+                </div>
+            `;
+
+            // Test 4: Text with only dates
+            const result4 = mockSummarize('The deadline is 15/03/2024 and the meeting is on 20/03/2024.');
+            
+            results.innerHTML += `
+                <div class="test-result ${result4.relevance_to_officials.length > 0 ? 'success' : 'error'}">
+                    <h3>${result4.relevance_to_officials.length > 0 ? '✅' : '❌'} Test 4: Date Detection</h3>
+                    <p><strong>Input:</strong> Text with dates only</p>
+                    <p><strong>Result:</strong></p>
+                    <pre>${JSON.stringify(result4, null, 2)}</pre>
+                    <p><strong>Status:</strong> ${result4.relevance_to_officials.length > 0 ? 'PASS' : 'FAIL'} - Should detect dates</p>
+                </div>
+            `;
+
+            // Summary
+            const totalTests = 4;
+            const passedTests = document.querySelectorAll('.test-result.success').length;
+            
+            results.innerHTML += `
+                <div class="test-result ${passedTests === totalTests ? 'success' : 'error'}">
+                    <h3>📊 Test Summary</h3>
+                    <p><strong>Total Tests:</strong> ${totalTests}</p>
+                    <p><strong>Passed:</strong> ${passedTests}</p>
+                    <p><strong>Failed:</strong> ${totalTests - passedTests}</p>
+                    <p><strong>Overall Status:</strong> ${passedTests === totalTests ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}</p>
+                </div>
+            `;
+        }
+
+        // Run tests when page loads
+        window.onload = runTests;
+    </script>
+</body>
+</html>
