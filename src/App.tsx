@@ -226,6 +226,85 @@ Penalties:
     }
   };
 
+  // Function to handle specific queries
+  const handleSpecificQuery = (prompt: string, text: string): string => {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Deadline queries
+    if (lowerPrompt.includes('deadline') || lowerPrompt.includes('due date') || lowerPrompt.includes('submission date')) {
+      const datePattern = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi;
+      const dates = text.match(datePattern) || [];
+      if (dates.length > 0) {
+        return `📅 **Deadlines Found:**\n${dates.map(date => `• ${date}`).join('\n')}`;
+      }
+      return "❌ No specific deadlines found in the document.";
+    }
+    
+    // Financial queries
+    if (lowerPrompt.includes('cost') || lowerPrompt.includes('price') || lowerPrompt.includes('value') || lowerPrompt.includes('amount') || lowerPrompt.includes('budget')) {
+      const moneyPattern = /₹\s*[\d,]+(?:\.\d{2})?|\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:lakh|crore|thousand|million|billion)\b/gi;
+      const amounts = text.match(moneyPattern) || [];
+      if (amounts.length > 0) {
+        return `💰 **Financial Information:**\n${amounts.map(amount => `• ${amount}`).join('\n')}`;
+      }
+      return "❌ No financial information found in the document.";
+    }
+    
+    // Contact queries
+    if (lowerPrompt.includes('contact') || lowerPrompt.includes('email') || lowerPrompt.includes('phone') || lowerPrompt.includes('address')) {
+      const contactPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|\b(?:\+91|0)?[6-9]\d{9}\b/g;
+      const contacts = text.match(contactPattern) || [];
+      if (contacts.length > 0) {
+        return `📞 **Contact Information:**\n${contacts.map(contact => `• ${contact}`).join('\n')}`;
+      }
+      return "❌ No contact information found in the document.";
+    }
+    
+    // Eligibility queries
+    if (lowerPrompt.includes('eligibility') || lowerPrompt.includes('qualification') || lowerPrompt.includes('criteria') || lowerPrompt.includes('requirement')) {
+      const lines = text.split('\n');
+      const eligibilityLines = lines.filter(line => 
+        line.toLowerCase().includes('eligibility') || 
+        line.toLowerCase().includes('qualification') || 
+        line.toLowerCase().includes('criteria') ||
+        line.toLowerCase().includes('requirement')
+      );
+      if (eligibilityLines.length > 0) {
+        return `📋 **Eligibility Information:**\n${eligibilityLines.map(line => `• ${line.trim()}`).join('\n')}`;
+      }
+      return "❌ No eligibility information found in the document.";
+    }
+    
+    // Penalty queries
+    if (lowerPrompt.includes('penalty') || lowerPrompt.includes('fine') || lowerPrompt.includes('penalties')) {
+      const lines = text.split('\n');
+      const penaltyLines = lines.filter(line => 
+        line.toLowerCase().includes('penalty') || 
+        line.toLowerCase().includes('fine') ||
+        line.toLowerCase().includes('late')
+      );
+      if (penaltyLines.length > 0) {
+        return `⚠️ **Penalty Information:**\n${penaltyLines.map(line => `• ${line.trim()}`).join('\n')}`;
+      }
+      return "❌ No penalty information found in the document.";
+    }
+    
+    // Document type queries
+    if (lowerPrompt.includes('what is this') || lowerPrompt.includes('type of document') || lowerPrompt.includes('document type')) {
+      const procurementKeywords = ['tender', 'procurement', 'bid', 'quotation', 'rfp', 'rfq'];
+      const foundKeywords = procurementKeywords.filter(keyword => 
+        text.toLowerCase().includes(keyword)
+      );
+      if (foundKeywords.length > 0) {
+        return `📄 **Document Type:** This appears to be a ${foundKeywords[0].toUpperCase()} document for government procurement.`;
+      }
+      return "📄 **Document Type:** Government procurement document";
+    }
+    
+    // If no specific query matches, return null to trigger full summary
+    return null;
+  };
+
   const handleSummarize = async (prompt: string = inputMessage) => {
     if (!extractedText.trim()) {
       alert('Please select and process a PDF first.');
@@ -243,37 +322,43 @@ Penalties:
     setInputMessage('');
 
     try {
-      // Check if we're in Tauri environment
-      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
-        // Use Tauri commands
-        const command = useApiMode ? 'summarize_text_api' : 'summarize_text_mock';
-        const result = await invoke<SummaryResult>(command, {
-          request: { text: extractedText }
-        });
-
+      // Check if this is a specific query first
+      const specificResponse = handleSpecificQuery(prompt, extractedText);
+      
+      if (specificResponse) {
+        // Handle specific query
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
-          content: 'Here is the summary for government officials:',
-          summary: result
+          content: specificResponse
         };
-
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        // Use browser-based mock summarizer
-        const result = mockSummarize(extractedText);
+        // Handle general summarization
+        let result: SummaryResult;
+        
+        if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+          // Use Tauri commands
+          const command = useApiMode ? 'summarize_text_api' : 'summarize_text_mock';
+          result = await invoke<SummaryResult>(command, {
+            request: { text: extractedText }
+          });
+        } else {
+          // Use browser-based mock summarizer
+          result = mockSummarize(extractedText);
+        }
 
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
-          content: 'Here is the summary for government officials:',
+          content: 'Here is the complete summary for government officials:',
           summary: result
         };
 
         setMessages(prev => [...prev, assistantMessage]);
       }
     } catch (error) {
-      console.error('Error summarizing:', error);
+      console.error('Error processing request:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
@@ -373,6 +458,40 @@ Penalties:
             <div className="preset-prompt" onClick={handlePresetPrompt}>
               <h4>🚀 Quick Start</h4>
               <p>Click here to summarize for procurement officer</p>
+            </div>
+            
+            <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '6px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333' }}>💡 Try These Queries:</h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  'Give me the deadline',
+                  'What is the cost?',
+                  'Show me contact details',
+                  'What are the eligibility criteria?',
+                  'Tell me about penalties'
+                ].map((query, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setInputMessage(query);
+                      handleSummarize(query);
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      background: '#e9ecef',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#dee2e6'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#e9ecef'}
+                  >
+                    {query}
+                  </button>
+                ))}
+              </div>
             </div>
             
             <div className="chat-messages">

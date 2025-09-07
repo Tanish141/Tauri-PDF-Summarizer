@@ -435,6 +435,42 @@ Note: Late submissions will not be accepted under any circumstances.`;
             };
         }
 
+        function handleSpecificQuery(prompt, text) {
+            const lowerPrompt = prompt.toLowerCase();
+            
+            // Deadline queries
+            if (lowerPrompt.includes('deadline') || lowerPrompt.includes('due date') || lowerPrompt.includes('submission date')) {
+                const datePattern = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi;
+                const dates = text.match(datePattern) || [];
+                if (dates.length > 0) {
+                    return `📅 <strong>Deadlines Found:</strong><br>${dates.map(date => `• ${date}`).join('<br>')}`;
+                }
+                return "❌ No specific deadlines found in the document.";
+            }
+            
+            // Financial queries
+            if (lowerPrompt.includes('cost') || lowerPrompt.includes('price') || lowerPrompt.includes('value') || lowerPrompt.includes('amount') || lowerPrompt.includes('budget')) {
+                const moneyPattern = /₹\s*[\d,]+(?:\.\d{2})?|\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:lakh|crore|thousand|million|billion)\b/gi;
+                const amounts = text.match(moneyPattern) || [];
+                if (amounts.length > 0) {
+                    return `💰 <strong>Financial Information:</strong><br>${amounts.map(amount => `• ${amount}`).join('<br>')}`;
+                }
+                return "❌ No financial information found in the document.";
+            }
+            
+            // Contact queries
+            if (lowerPrompt.includes('contact') || lowerPrompt.includes('email') || lowerPrompt.includes('phone') || lowerPrompt.includes('address')) {
+                const contactPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|\b(?:\+91|0)?[6-9]\d{9}\b/g;
+                const contacts = text.match(contactPattern) || [];
+                if (contacts.length > 0) {
+                    return `📞 <strong>Contact Information:</strong><br>${contacts.map(contact => `• ${contact}`).join('<br>')}`;
+                }
+                return "❌ No contact information found in the document.";
+            }
+            
+            return null; // No specific query matched
+        }
+
         function summarizeDocument() {
             if (!extractedText.trim()) {
                 alert('Please select a file first.');
@@ -445,8 +481,22 @@ Note: Late submissions will not be accepted under any circumstances.`;
 
             // Simulate processing delay
             setTimeout(() => {
-                const result = mockSummarize(extractedText);
-                displaySummary(result);
+                // Check for specific queries first
+                const specificResponse = handleSpecificQuery('Give me the deadline', extractedText);
+                
+                if (specificResponse) {
+                    document.getElementById('summaryResults').innerHTML = `
+                        <div class="summary-result">
+                            <div class="summary-section">
+                                <h4>📋 Query Response</h4>
+                                <p>${specificResponse}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const result = mockSummarize(extractedText);
+                    displaySummary(result);
+                }
             }, 1000);
         }
 
